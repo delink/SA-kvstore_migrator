@@ -2,6 +2,7 @@
 # splunkkvstore.py - Class for manipulating kvstore collections in Splunk
 #####
 
+import sys
 import requests
 import json
 requests.packages.urllib3.disable_warnings()
@@ -16,6 +17,7 @@ class splunkkvstore(object):
 
 	# Generic function to make an API call and return the results
 	def api(self,method,api_endpoint,*payload):
+		api_endpoint = api_endpoint + "?output_mode=json"
 		if payload is None:
 			payload == ""
 		if method.lower() == 'get':
@@ -23,22 +25,28 @@ class splunkkvstore(object):
 				results = self.session.get(self.url+api_endpoint,verify=False)
 			except:
 				print("Unable to retrieve from Splunk API: {}".format(sys.exc_info()[0]))
-				return None
+				raise
 		elif method.lower() == 'post':
 			try:
 				results = self.session.post(self.url+api_endpoint,payload[0],verify=False,headers={"content-type":"application/json"})
 			except:
 				print("Unable to send to Splunk API: {}".format(sys.exc_info()[0]))
-				return None
+				raise
 		elif method.lower() == 'delete':
 			try:
 				results = self.session.delete(self.url+api_endpoint,verify=False)
 			except:
 				print("Unable to delete in Splunk API: {}".format(sys.exc_info()[0]))
-				return None
+				raise
 		else:
 			raise ValueError("Unknown method: {}".format(method))
 			return None
+
+		results_json = results.json()
+		if 'messages' in results_json:
+			for json_error in results_json['messages']:
+				if json_error['type'] == "ERROR":
+					raise RuntimeError(json_error['text'])
 
 		return results
 
@@ -62,7 +70,7 @@ class splunkkvstore(object):
 			app_scope = "-"
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
-		api_endpoint = "/servicesNS/{}/{}/storage/collections/config?output_mode=json".format(owner_scope,app_scope)
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/config".format(owner_scope,app_scope)
 
 		get_coll_list_request = self.api("GET",api_endpoint)
 
@@ -80,14 +88,14 @@ class splunkkvstore(object):
 			app_scope = "-"
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
-		api_endpoint = "/servicesNS/{}/{}/storage/collections/config?output_mode=json".format(owner_scope,app_scope)
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/config".format(owner_scope,app_scope)
 		payload = { 'name': coll_name }
 
 		create_coll_request = self.api("POST",api_endpoint,payload)
 
 		results = create_coll_request.json()
 
-		return 0
+		return results
 
 	def delete_collection(self,owner_scope,app_scope,coll_name):
 		if not owner_scope:
@@ -96,13 +104,13 @@ class splunkkvstore(object):
 			app_scope = "-"
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
-		api_endpoint = "/servicesNS/{}/{}/storage/collections/config/{}?output_mode=json".format(owner_scope,app_scope,coll_name)
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/config/{}".format(owner_scope,app_scope,coll_name)
 
 		delete_coll_request = self.api("DELETE",api_endpoint)
 
 		results = delete_coll_request.json()
 
-		return 0
+		return results
 
 	# This method returns the collection's configuration as a JSON string
 	def get_collection_config(self,owner_scope,app_scope,coll_name):
@@ -112,7 +120,7 @@ class splunkkvstore(object):
 			app_scope = "-"
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
-		api_endpoint = "/servicesNS/{}/{}/storage/collections/config/{}?output_mode=json".format(owner_scope,app_scope,coll_name)
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/config/{}".format(owner_scope,app_scope,coll_name)
 
 		get_coll_config_request = self.api("GET",api_endpoint)
 
@@ -126,7 +134,7 @@ class splunkkvstore(object):
 			app_scope = "-"
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
-		api_endpoint = "/servicesNS/{}/{}/storage/collections/data/{}?output_mode=json".format(owner_scope,app_scope,coll_name)
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/data/{}".format(owner_scope,app_scope,coll_name)
 
 		get_coll_data_request = self.api("GET",api_endpoint)
 
@@ -140,12 +148,14 @@ class splunkkvstore(object):
 			app_scope = "-"
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
-		api_endpoint = "/servicesNS/{}/{}/storage/collections/config/{}?output_mode=json".format(owner_scope,app_scope,coll_name)
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/config/{}".format(owner_scope,app_scope,coll_name)
 		payload = configuration
 
 		set_coll_config_request = self.api("POST",api_endpoint,payload)
 
-		return 0
+		results = set_coll_config_request.json()
+
+		return results
 
 	# This method sets the collection's data using the provided JSON string
 	def set_collection_data(self,owner_scope,app_scope,coll_name,data):
@@ -155,9 +165,11 @@ class splunkkvstore(object):
 			app_scope = "-"
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
-		api_endpoint = "/servicesNS/{}/{}/storage/collections/data/{}/batch_save?output_mode=json".format(owner_scope,app_scope,coll_name)
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/data/{}/batch_save".format(owner_scope,app_scope,coll_name)
 		payload = data
 
 		set_coll_data_request = self.api("POST",api_endpoint,payload)
 
-		return set_coll_data_request.text
+		results = set_coll_data_request.json()
+
+		return results
