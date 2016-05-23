@@ -47,6 +47,8 @@ class splunkkvstore(object):
 			for json_error in results_json['messages']:
 				if json_error['type'] == "ERROR":
 					raise RuntimeError(json_error['text'])
+				elif json_error['type'] == "WARN" and json_error['text'] == "Login failed":
+					raise RuntimeError(json_error['text'])
 
 		return results
 
