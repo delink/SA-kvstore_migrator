@@ -4,7 +4,7 @@
 
 from splunkkvstore import splunkkvstore
 
-src_splunk = splunkkvstore("https://172.21.42.102:8089","admin","temp1234")
+src_splunk = splunkkvstore("https://172.21.42.102:8089","admin","temp124")
 src_splunk.login()
 
 dest_splunk = splunkkvstore("https://172.21.42.103:8089","admin","temp1234")
