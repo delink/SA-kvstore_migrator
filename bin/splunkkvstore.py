@@ -10,10 +10,16 @@ requests.packages.urllib3.disable_warnings()
 class splunkkvstore(object):
 
 	# On instaniation, only collect the details. Do not do anything until login is called.
-	def __init__(self,url,username,password):
+	def __init__(self,url,*args):
 		self.url = url;
-		self.username = username;
-		self.password = password;
+		if len(args) == 2:
+			self.username = args[0]
+			self.password = args[1]
+			self.session_key = ""
+		elif len(args) == 1:
+			self.session_key = args[0]
+			self.username = ""
+			self.password = ""
 
 	# Generic function to make an API call and return the results
 	def api(self,method,api_endpoint,*payload):
@@ -55,12 +61,16 @@ class splunkkvstore(object):
 	# Retrieve the session key inside of a requests.Session() object and store it in the object.
 	def login(self):
 
-		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTaccess
-		api_endpoint = "/services/auth/login"
-		creds_payload = { 'cookie': '1', 'username': self.username, 'password': self.password }
-
 		self.session = requests.Session()
-		login_request = self.api("POST",api_endpoint,creds_payload)
+
+		if self.session_key != "":
+			requests.utils.cookiejar_from_dict({'splunkd_8089': self.session_key},self.session.cookies)
+		else:
+			# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTaccess
+			api_endpoint = "/services/auth/login"
+			creds_payload = { 'cookie': '1', 'username': self.username, 'password': self.password }
+			login_request = self.api("POST",api_endpoint,creds_payload)
+
 		return None
 
 	# Get the list of collection names from a particular scope. Use "-" for no scope
