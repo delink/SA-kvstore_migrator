@@ -28,7 +28,7 @@ class splunkkvstore(object):
 			payload == ""
 		if method.lower() == 'get':
 			try:
-				results = self.session.get(self.url+api_endpoint,verify=False)
+				results = self.session.get(self.url+api_endpoint,verify=False,headers={"content-type":"application/json"})
 			except:
 				print("Unable to retrieve from Splunk API: {}".format(sys.exc_info()[0]))
 				raise
@@ -40,7 +40,7 @@ class splunkkvstore(object):
 				raise
 		elif method.lower() == 'delete':
 			try:
-				results = self.session.delete(self.url+api_endpoint,verify=False)
+				results = self.session.delete(self.url+api_endpoint,verify=False,headers={"content-type":"application/json"})
 			except:
 				print("Unable to delete in Splunk API: {}".format(sys.exc_info()[0]))
 				raise
@@ -48,12 +48,16 @@ class splunkkvstore(object):
 			raise ValueError("Unknown method: {}".format(method))
 			return None
 
-		results_json = results.json()
+		results_json = ""
+		try:
+			results_json = results.json()
+		except:
+			pass
 		if 'messages' in results_json:
 			for json_error in results_json['messages']:
 				if json_error['type'] == "ERROR":
 					raise RuntimeError(json_error['text'])
-				elif json_error['type'] == "WARN" and json_error['text'] == "Login failed":
+				elif json_error['type'] == "WARN" and (json_error['text'] == "Login failed" or json_error['text'] == "call not properly authenticated"):
 					raise RuntimeError(json_error['text'])
 
 		return results
@@ -120,9 +124,7 @@ class splunkkvstore(object):
 
 		delete_coll_request = self.api("DELETE",api_endpoint)
 
-		results = delete_coll_request.json()
-
-		return results
+		return None
 
 	# This method returns the collection's configuration as a JSON string
 	def get_collection_config(self,owner_scope,app_scope,coll_name):
@@ -185,3 +187,17 @@ class splunkkvstore(object):
 		results = set_coll_data_request.json()
 
 		return results
+
+	# This method deletes the collection's data while leaving the collection itself intact
+	def delete_collection_data(self,owner_scope,app_scope,coll_name):
+		if not owner_scope:
+			owner_scope = "-"
+		if not app_scope:
+			app_scope = "-"
+
+		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
+		api_endpoint = "/servicesNS/{}/{}/storage/collections/data/{}".format(owner_scope,app_scope,coll_name)
+
+		set_coll_data_request = self.api("DELETE",api_endpoint)
+
+		return None
