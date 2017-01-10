@@ -5,7 +5,7 @@
 import sys
 import requests
 import json
-requests.packages.urllib3.disable_warnings()
+#requests.packages.urllib3.disable_warnings()
 
 class splunkkvstore(object):
 
