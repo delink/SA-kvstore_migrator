@@ -26,12 +26,16 @@ def do_scheme():
 				<title>Source Splunk instance password</title>
 				<description>Password of source Splunk REST API to pull data from.</description>
 			</arg>
+			<arg name="app_context">
+				<title>Splunk app context</title>
+				<description>App context to use for finding collection list to migrate</description>
+			</arg>
 		</args>
 	</endpoint>
 </scheme>
 """)
 
-# Validation routine (eventually)
+# Validation routine for checking credentials to local Splunk and remote Splunk
 def validate_arguments():
 	# Pull configuration from input XML (error checking in function)
 	config = get_config()
@@ -63,7 +67,7 @@ def check_for_empty(config, param):
 # Testing: /opt/splunk/bin/splunk cmd splunkd print-modinput-config kvstore_migrator kvstore_migrator://<stanza_name>
 def get_config():
 	# Expected values in the resulting config dict
-	config = {'name': '', 'server_ui': '', 'session_key': '', 'source_splunk': '', 'user': '', 'password': ''}
+	config = {'name': '', 'server_ui': '', 'session_key': '', 'source_splunk': '', 'user': '', 'password': '', 'app_context': ''}
 
 	# Pull the XML from STDIN and run it through parsing.
 	try:
@@ -97,6 +101,7 @@ def get_config():
 		check_for_empty(config,"source_splunk")
 		check_for_empty(config,"user")
 		check_for_empty(config,"password")
+		check_for_empty(config,"app_context")
 	except Exception,e:
 		raise Exception, "Error getting Splunk configuration via STDIN: {}".format(str(e))
 
