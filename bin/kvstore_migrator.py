@@ -42,22 +42,16 @@ def validate_arguments():
 	logging.debug("validate_arguments(): Start.")
 	config = get_config("validation")
 
-	# Verify connection to local splunk instance
-	#try:
-	#	dest_splunk = splunkkvstore(config['server_uri'],config['session_key'])
-	#	dest_splunk.login()
-	#except Exception,e:
-	#	raise "Unable to connect to local Splunk instance API: {}".format(str(e))
-
-	# Verify connection to remote splunk instance
+	# Verify connection to remote splunk instance before saving configuration
 	try:
 		logging.debug("validate_arguments(): Attempting connection to remote Splunk instance at {}".format(config['remote_uri']))
 		src_splunk = splunkkvstore(config['remote_uri'],config['user'],config['password'])
 		src_splunk.login()
 	except Exception,e:
-		raise "Unable to connect to remote Splunk instance API: {}".format(str(e))
+		raise Exception,"Unable to connect to {}: {}".format(config['remote_uri'],str(e))
 
 	# Looks good!
+	logging.info("Connection to {} succeeded.".format(config['remote_uri']))
 	pass
 
 # Quick check to see if a key is defined and populated with a non-empty value

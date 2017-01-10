@@ -12,6 +12,7 @@ Logging
 -------
 
 * Determine a concrete and useful set of things to log at the INFO level.
+* Determine how to alter the error in the red bar from saying "Script exited with error code 1".
 
 
 Configuration
