@@ -1,5 +1,5 @@
 [kvstore_migrator://<name>]
-source_splunk = <value>
+remote_uri = <value>
 * This is the URL of the remote Splunk instance's REST API to pull data from.
 
 user = <value>
