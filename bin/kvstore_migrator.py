@@ -136,7 +136,78 @@ def get_config(type):
 
 def do_the_thing():
 	logging.debug("do_the_thing(): Start.")
+
+	# Get the config from incoming XML.
 	config = get_config("modinput")
+
+	# Setup API connection to the local Splunk instance
+	try:
+		logging.debug("do_the_thing(): Attempting connection to local Splunk instance at {}".format(config['server_uri']))
+		dest_splunk = splunkkvstore(config['server_uri'],config['session_key'])
+		dest_splunk.login()
+	except Exception,e:
+		raise Exception,"Unable to connect to {}: {}".format(config['server_uri'],str(e))
+
+	# Looks good!
+	logging.info("Connection to {} succeeded.".format(config['server_uri']))
+
+
+	# Setup API connections to the remote Splunk instance
+	try:
+		logging.debug("do_the_thing(): Attempting connection to remote Splunk instance at {}".format(config['remote_uri']))
+		src_splunk = splunkkvstore(config['remote_uri'],config['user'],config['password'])
+		src_splunk.login()
+	except Exception,e:
+		raise Exception,"Unable to connect to {}: {}".format(config['remote_uri'],str(e))
+
+	# Looks good!
+	logging.info("Connection to {} succeeded.".format(config['remote_uri']))
+
+	# Grab the list of collections to migrate based on app_context
+	try:
+		logging.debug("do_the_thing(): Retrieving list of collections from app {}".format(config['app_context']))
+		coll_list = src_splunk.get_collection_list("",config['app_context'])
+	except Exception,e:
+		raise Exception,"Unable to get list of collections from remote Splunk: {}".format(str(e))
+
+	# Process each collection as it comes through, skipping the system-based collections.
+	for coll in coll_list:
+		logging.debug("do_the_thing(): Starting processing on collection {}".format(coll))
+
+		# There are collections defined in the system itself. We probably don't want to copy these.
+		if coll_list[coll]['sharing'] == 'system':
+			logging.debug("do_the_thing(): Skipping collection because it is built-in to Splunk.")
+			continue
+
+		# Retrieve the configuration from the collection.
+		try:
+			logging.debug("do_the_thing(): Retrieving collection configuration for {}".format(coll))
+			coll_config = src_splunk.get_collection_config("nobody",config['app_context'],coll)
+		except Exception,e:
+			raise Exception,"Unable to get collection configuration: {}".format(str(e))
+
+		# Retrieve the data from the collection.
+		try:
+			logging.debug("do_the_thing(): Retrieving collection data for {}".format(coll))
+			coll_data = src_splunk.get_collection_data("nobody",config['app_context'],coll)
+		except Exception,e:
+			raise Exception,"Unable to get collection data: {}".format(str(e))
+
+		# If we're still running, we have the goods. Load them up into the local instance.
+
+		# Configuration
+		try:
+			logging.debug("do_the_thing(): Loading collection configuration for {}".format(coll))
+			dest_splunk.set_collection_config("nobody",config['app_context'],coll,coll_config)
+		except Exception,e:
+			raise Exception,"Unable to load collection configuration: {}".format(str(e))
+
+		# Data
+		try:
+			logging.debug("do_the_thing(): Loading collection data for {}".format(coll))
+			dest_splunk.set_collection_config("nobody",config['app_context'],coll,coll_data)
+		except Exception,e:
+			raise Exception,"Unable to load collection data: {}".format(str(e))
 
 if __name__ == '__main__':
 	# set up logging suitable for splunkd consumption
@@ -160,7 +231,6 @@ if __name__ == '__main__':
 
 	else:
 		logging.debug("Getting ready to run a migration.")
-		#do_the_thing()
-		pass
+		do_the_thing()
 
 	sys.exit(0)
