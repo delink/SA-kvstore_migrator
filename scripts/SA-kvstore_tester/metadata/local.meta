@@ -1,0 +1,10 @@
+[]
+access = read : [ * ], write : [ admin ]
+export = system
+
+[savedsearches/Populate%20Collection%20with%20Test%20Data]
+access = read : [ * ], write : [ admin ]
+export = none
+owner = admin
+version = 6.5.1
+modtime = 1487184029.466285000
