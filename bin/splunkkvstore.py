@@ -5,7 +5,8 @@
 import sys
 import requests
 import json
-#requests.packages.urllib3.disable_warnings()
+import logging
+logging.getLogger(__name__)
 
 class splunkkvstore(object):
 
@@ -24,25 +25,28 @@ class splunkkvstore(object):
 	# Generic function to make an API call and return the results
 	def api(self,method,api_endpoint,*payload):
 		api_endpoint = api_endpoint + "?output_mode=json"
-		if payload is None:
-			payload == ""
+		try:
+			payload = payload[0]
+		except:
+			pass
+
 		if method.lower() == 'get':
 			try:
 				results = self.session.get(self.url+api_endpoint,verify=False,headers={"content-type":"application/json"})
 			except:
-				print("Unable to retrieve from Splunk API: {}".format(sys.exc_info()[0]))
+				logging.error("Unable to retrieve from Splunk API: {}".format(sys.exc_info()[0]))
 				raise
 		elif method.lower() == 'post':
 			try:
-				results = self.session.post(self.url+api_endpoint,payload[0],verify=False,headers={"content-type":"application/json"})
+				results = self.session.post(self.url+api_endpoint,data=payload,verify=False,headers={"content-type":"application/json"})
 			except:
-				print("Unable to send to Splunk API: {}".format(sys.exc_info()[0]))
+				logging.error("Unable to send to Splunk API: {}".format(sys.exc_info()[0]))
 				raise
 		elif method.lower() == 'delete':
 			try:
 				results = self.session.delete(self.url+api_endpoint,verify=False,headers={"content-type":"application/json"})
 			except:
-				print("Unable to delete in Splunk API: {}".format(sys.exc_info()[0]))
+				logging.error("Unable to delete in Splunk API: {}".format(sys.exc_info()[0]))
 				raise
 		else:
 			raise ValueError("Unknown method: {}".format(method))
@@ -163,7 +167,7 @@ class splunkkvstore(object):
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
 		api_endpoint = "/servicesNS/{}/{}/storage/collections/config/{}".format(owner_scope,app_scope,coll_name)
-		payload = configuration
+		payload = json.loads(configuration)
 
 		set_coll_config_request = self.api("POST",api_endpoint,payload)
 
@@ -180,7 +184,7 @@ class splunkkvstore(object):
 
 		# http://docs.splunk.com/Documentation/Splunk/latest/RESTREF/RESTkvstore
 		api_endpoint = "/servicesNS/{}/{}/storage/collections/data/{}/batch_save".format(owner_scope,app_scope,coll_name)
-		payload = data
+		payload = json.loads(data)
 
 		set_coll_data_request = self.api("POST",api_endpoint,payload)
 

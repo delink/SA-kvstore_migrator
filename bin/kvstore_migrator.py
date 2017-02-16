@@ -80,12 +80,12 @@ def get_config(type):
 
 		if type == "modinput":
 			logging.debug("get_config(): Parsing out server_uri from config XML.")
-			server_uri = root.getElementsByTagName("server_uri")[0]
+			server_uri = root.getElementsByTagName("server_uri")[0].firstChild.nodeValue
 			if server_uri:
 				config['server_uri'] = server_uri
 
 			logging.debug("get_config(): Parsing out session_key from config XML.")
-			session_key = root.getElementsByTagName("session_key")[0]
+			session_key = root.getElementsByTagName("session_key")[0].firstChild.nodeValue
 			if session_key:
 				config['session_key'] = session_key
 
@@ -166,7 +166,7 @@ def do_the_thing():
 	# Grab the list of collections to migrate based on app_context
 	try:
 		logging.debug("do_the_thing(): Retrieving list of collections from app {}".format(config['app_context']))
-		coll_list = src_splunk.get_collection_list("",config['app_context'])
+		coll_list = src_splunk.get_collection_list("nobody",config['app_context'])
 	except Exception,e:
 		raise Exception,"Unable to get list of collections from remote Splunk: {}".format(str(e))
 
